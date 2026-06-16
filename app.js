@@ -26,6 +26,8 @@ const els = {
 let antinode = null;
 let cachedSecret = null;
 let initError = null;
+let isSignedIn = false;
+let weatherRefreshPromise = null;
 
 function showStatus(message) {
   if (els.sessionChip) els.sessionChip.textContent = message;
@@ -47,6 +49,7 @@ function sessionLabel(session) {
 
 function setSessionUi(session) {
   const signedIn = !!(session && session.signed_in);
+  isSignedIn = signedIn;
   els.sessionChip.textContent = signedIn ? `Signed in as ${sessionLabel(session)}` : 'Guest';
   els.signinBtn.classList.toggle('hidden', signedIn);
   els.signoutBtn.classList.toggle('hidden', !signedIn);
@@ -127,12 +130,16 @@ async function mountAiChat() {
   }
 }
 
-async function refreshWeather() {
-  if (!antinode) return;
-  const session = await antinode.session();
-  if (!session?.signed_in) {
+async function refreshWeather({ reloadSecret = false } = {}) {
+  if (!antinode || !isSignedIn) {
     els.secretStatus.textContent = 'Sign in required';
     els.secretStatus.className = 'pill muted';
+    return;
+  }
+
+  if (!reloadSecret && cachedSecret) {
+    const place = String(els.destination?.value || 'Mount Tamalpais').trim();
+    els.weatherCopy.textContent = await fetchTrailWeather(place);
     return;
   }
 
@@ -141,7 +148,7 @@ async function refreshWeather() {
 
   try {
     const result = await antinode.getSecret(secretName);
-    cachedSecret = result?.value ? String(result.value) : '';
+    cachedSecret = typeof result === 'string' ? result.trim() : String(result?.value || '').trim();
     if (!cachedSecret) throw new Error(`Secret ${secretName} is empty`);
     els.secretStatus.textContent = 'Vault key loaded';
     els.secretStatus.className = 'pill ok';
@@ -149,13 +156,24 @@ async function refreshWeather() {
     cachedSecret = null;
     els.secretStatus.textContent = 'Secret missing';
     els.secretStatus.className = 'pill muted';
-    els.weatherCopy.textContent = `Add ${secretName} in Antinode Manage → Secrets, then refresh. (${err?.message || err})`;
+    const message = err?.message || String(err);
+    els.weatherCopy.textContent = message.includes('rate limit')
+      ? `Secret rate limit hit — wait a minute, then click Refresh weather. (${message})`
+      : `Add ${secretName} in Antinode Manage → Secrets, then refresh. (${message})`;
     return;
   }
 
   const place = String(els.destination?.value || 'Mount Tamalpais').trim();
-  const summary = await fetchTrailWeather(place);
-  els.weatherCopy.textContent = summary;
+  els.weatherCopy.textContent = await fetchTrailWeather(place);
+}
+
+function scheduleWeatherRefresh(opts = {}) {
+  if (!isSignedIn) return Promise.resolve();
+  if (weatherRefreshPromise) return weatherRefreshPromise;
+  weatherRefreshPromise = refreshWeather(opts).finally(() => {
+    weatherRefreshPromise = null;
+  });
+  return weatherRefreshPromise;
 }
 
 async function fetchTrailWeather(place) {
@@ -244,7 +262,7 @@ async function bootstrap() {
   });
   els.saveEntryBtn?.addEventListener('click', handleSaveEntry);
   els.refreshWeatherBtn?.addEventListener('click', () => {
-    refreshWeather().catch((err) => showError(err?.message || String(err)));
+    scheduleWeatherRefresh({ reloadSecret: true }).catch((err) => showError(err?.message || String(err)));
   });
   els.accountBtn?.addEventListener('click', () => {
     if (!antinode?.account_dashboard) {
@@ -268,21 +286,29 @@ async function bootstrap() {
     return;
   }
 
+  let wasSignedIn = false;
   antinode.on_session_change((session) => {
+    const signedIn = !!(session && session.signed_in);
     setSessionUi(session);
-    if (session?.signed_in) {
-      refreshWeather().catch(() => {});
+    if (signedIn && !wasSignedIn) {
+      scheduleWeatherRefresh().catch(() => {});
       renderEntries();
     }
+    if (!signedIn) {
+      cachedSecret = null;
+    }
+    wasSignedIn = signedIn;
   });
 
   const session = await antinode.session().catch(() => null);
   setSessionUi(session);
+  const signedInOnLoad = !!(session && session.signed_in);
+  wasSignedIn = signedInOnLoad;
 
   await mountAiChat();
 
-  if (session?.signed_in) {
-    await refreshWeather().catch(() => {});
+  if (signedInOnLoad) {
+    await scheduleWeatherRefresh().catch(() => {});
   }
 }
 

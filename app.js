@@ -5,6 +5,22 @@ const params = new URLSearchParams(window.location.search);
 const gatewayUrl = String(params.get('gateway') || cfg.gatewayUrl || '').replace(/\/$/, '');
 const secretName = String(cfg.secretName || 'HORIZON_WEATHER_KEY');
 
+function assertGatewayConfigured() {
+  const host = window.location.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  const looksLocalGateway = !gatewayUrl || gatewayUrl.includes('localhost') || gatewayUrl.includes('127.0.0.1');
+  if (!isLocal && looksLocalGateway) {
+    throw new Error(
+      'Horizon Atlas config.js still points at a local gateway. '
+      + 'Set gatewayUrl to your Antinode gateway (https://….run.app) in config.js, '
+      + 'or open this page with ?gateway=https://YOUR-GATEWAY-URL',
+    );
+  }
+  if (!gatewayUrl || gatewayUrl.includes('YOUR-GATEWAY')) {
+    throw new Error('Set gatewayUrl in config.js (or ?gateway=) before running this demo.');
+  }
+}
+
 const els = {
   sessionChip: document.getElementById('session-chip'),
   signinBtn: document.getElementById('signin-btn'),
@@ -103,10 +119,7 @@ function escapeHtml(value) {
 }
 
 async function loadAntinode() {
-  if (!gatewayUrl || gatewayUrl.includes('YOUR-GATEWAY')) {
-    throw new Error('Set gatewayUrl in config.js (or ?gateway=) before running this demo.');
-  }
-
+  assertGatewayConfigured();
   await new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.type = 'module';

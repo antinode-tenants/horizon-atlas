@@ -1,5 +1,5 @@
-// Generated for local preview — replace for your deployment.
+// Antinode example site configuration
 window.HORIZON_ATLAS_CONFIG = {
-  gatewayUrl: 'http://localhost:8080',
+  gatewayUrl: 'https://antinode-auth-gateway-970225206309.us-central1.run.app',
   secretName: 'HORIZON_WEATHER_KEY',
 };

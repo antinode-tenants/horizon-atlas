@@ -28,6 +28,7 @@ let cachedSecret = null;
 let initError = null;
 let isSignedIn = false;
 let weatherRefreshPromise = null;
+let aiMountPromise = null;
 
 function showStatus(message) {
   if (els.sessionChip) els.sessionChip.textContent = message;
@@ -123,11 +124,22 @@ async function mountAiChat() {
   if (!antinode?.ai?.mount) return;
   const mountEl = document.getElementById('antinode-ai');
   if (!mountEl) return;
+  if (typeof antinode.ai.unmount === 'function') {
+    try { antinode.ai.unmount('#antinode-ai'); } catch (e) {}
+  }
   try {
     await antinode.ai.mount('#antinode-ai');
   } catch (err) {
     mountEl.innerHTML = `<p class="muted small" style="padding:16px;">AI embed unavailable: ${escapeHtml(err?.message || err)}</p>`;
   }
+}
+
+function scheduleAiMount() {
+  if (aiMountPromise) return aiMountPromise;
+  aiMountPromise = mountAiChat().finally(() => {
+    aiMountPromise = null;
+  });
+  return aiMountPromise;
 }
 
 async function refreshWeather({ reloadSecret = false } = {}) {
@@ -292,6 +304,7 @@ async function bootstrap() {
     setSessionUi(session);
     if (signedIn && !wasSignedIn) {
       scheduleWeatherRefresh().catch(() => {});
+      scheduleAiMount().catch(() => {});
       renderEntries();
     }
     if (!signedIn) {
@@ -305,7 +318,7 @@ async function bootstrap() {
   const signedInOnLoad = !!(session && session.signed_in);
   wasSignedIn = signedInOnLoad;
 
-  await mountAiChat();
+  await scheduleAiMount();
 
   if (signedInOnLoad) {
     await scheduleWeatherRefresh().catch(() => {});

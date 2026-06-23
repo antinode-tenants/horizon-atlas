@@ -1,100 +1,75 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Horizon Atlas — Field journal demo</title>
-  <meta name="description" content="Antinode integration demo: sign-in, secrets vault, and AI travel co-pilot on a static site." />
+  <title>Horizon Atlas</title>
+  <meta name="description" content="A minimal Antinode demo: sign-in, secrets, and amAIra on a static site." />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="backdrop" aria-hidden="true"></div>
-
   <header class="site-header">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true">◠</span>
-      <div>
-        <div class="brand-name">Horizon Atlas</div>
-        <div class="brand-tag">Weekend explorer&apos;s field journal</div>
-      </div>
-    </div>
+    <div class="brand">Horizon Atlas</div>
     <div class="header-actions">
-      <span id="session-chip" class="session-chip muted">Checking session…</span>
-      <button id="signin-btn" class="btn primary" type="button">Sign in</button>
-      <button id="signout-btn" class="btn ghost hidden" type="button">Sign out</button>
+      <span id="session-chip" class="session-chip">Checking session…</span>
+      <button id="account-btn" class="btn btn-text hidden" type="button">Account</button>
+      <button id="signin-btn" class="btn btn-primary" type="button">Sign in</button>
+      <button id="signout-btn" class="btn btn-text hidden" type="button">Sign out</button>
     </div>
   </header>
 
   <main class="layout">
-    <section class="panel journal-panel">
-      <div class="panel-head">
-        <div>
-          <h1>Trail notes</h1>
-          <p class="lede">Pin a destination, pull keys from Antinode, and save entries when you&apos;re signed in.</p>
-        </div>
-        <button id="account-btn" class="btn ghost hidden" type="button">Account</button>
-      </div>
-
-      <div id="gate" class="gate card">
-        <h2>Sign in to unlock your journal</h2>
-        <p class="muted">This demo uses Antinode IAM. Entries stay in your browser; only authenticated users can read secrets or save notes.</p>
-        <button id="gate-signin-btn" class="btn primary" type="button">Sign in with Antinode</button>
+    <section class="journal">
+      <div id="gate" class="gate">
+        <p>Sign in to write trail notes and load weather from your Antinode vault.</p>
+        <button id="gate-signin-btn" class="btn btn-primary" type="button">Sign in</button>
       </div>
 
       <div id="workspace" class="workspace hidden">
-        <div class="grid-two">
+        <div class="fields-row">
           <label class="field">
             <span class="label">Destination</span>
             <input id="destination" type="text" placeholder="Mount Tamalpais" value="Mount Tamalpais" />
           </label>
-          <label class="field">
+          <label class="field field-date">
             <span class="label">Date</span>
             <input id="entry-date" type="date" />
           </label>
         </div>
 
-        <div class="weather card" id="weather-card">
-          <div class="weather-head">
-            <h3>Trail conditions</h3>
-            <span id="secret-status" class="pill muted">Secret not loaded</span>
+        <div class="weather" id="weather-card">
+          <div class="weather-top">
+            <span class="label">Conditions</span>
+            <span id="secret-status" class="status-dot muted" title="Secret not loaded">Vault</span>
           </div>
-          <p id="weather-copy" class="muted">Sign in and load <code>HORIZON_WEATHER_KEY</code> from your Antinode vault to refresh conditions.</p>
+          <p id="weather-copy" class="weather-copy muted">Sign in to load weather via your vault secret.</p>
         </div>
 
         <label class="field">
-          <span class="label">Field note</span>
-          <textarea id="entry-body" rows="5" placeholder="Ridge loop at dawn. Low fog in the valley…"></textarea>
+          <span class="label">Note</span>
+          <textarea id="entry-body" rows="4" placeholder="Morning ridge loop…"></textarea>
         </label>
 
-        <div class="row">
-          <button id="save-entry-btn" class="btn primary" type="button">Save entry</button>
-          <button id="refresh-weather-btn" class="btn ghost" type="button">Refresh weather</button>
+        <div class="actions">
+          <button id="save-entry-btn" class="btn btn-primary" type="button">Save</button>
+          <button id="refresh-weather-btn" class="btn btn-text" type="button">Refresh weather</button>
         </div>
 
         <div class="entries">
-          <h3>Recent entries</h3>
+          <div class="label">Recent</div>
           <ul id="entries-list" class="entries-list"></ul>
         </div>
       </div>
     </section>
 
-    <aside class="panel ai-panel">
-      <div class="panel-head compact">
-        <div>
-          <h2>amAIra</h2>
-          <p class="muted small">Antinode AI embed — configure the provider in your owner dashboard.</p>
-        </div>
-      </div>
+    <aside class="ai-panel">
+      <div class="label">amAIra</div>
       <div id="antinode-ai" class="ai-mount"></div>
     </aside>
   </main>
 
   <footer class="site-footer muted">
-    <p>
-      <strong>Horizon Atlas</strong> is a reference static site for
-      <a href="https://antinode.site" target="_blank" rel="noopener noreferrer">Antinode</a>
-      — login, secrets, and amAIra. Not a production product.
-    </p>
+  Antinode demo — <a href="https://antinode.site" target="_blank" rel="noopener noreferrer">antinode.site</a>
   </footer>
 
   <script src="config.js"></script>

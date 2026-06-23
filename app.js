@@ -95,7 +95,7 @@ function renderEntries() {
   if (!entries.length) {
     const li = document.createElement('li');
     li.className = 'muted';
-    li.textContent = 'No entries yet — add your first field note above.';
+    li.textContent = 'No entries yet.';
     els.entriesList.appendChild(li);
     return;
   }
@@ -158,7 +158,7 @@ function scheduleAiMount() {
 async function refreshWeather({ reloadSecret = false } = {}) {
   if (!antinode || !isSignedIn) {
     els.secretStatus.textContent = 'Sign in required';
-    els.secretStatus.className = 'pill muted';
+    els.secretStatus.className = 'status-dot muted';
     return;
   }
 
@@ -168,23 +168,23 @@ async function refreshWeather({ reloadSecret = false } = {}) {
     return;
   }
 
-  els.secretStatus.textContent = 'Loading secret…';
-  els.secretStatus.className = 'pill muted';
+  els.secretStatus.textContent = 'Loading…';
+  els.secretStatus.className = 'status-dot muted';
 
   try {
     const result = await antinode.getSecret(secretName);
     cachedSecret = typeof result === 'string' ? result.trim() : String(result?.value || '').trim();
     if (!cachedSecret) throw new Error(`Secret ${secretName} is empty`);
-    els.secretStatus.textContent = 'Vault key loaded';
-    els.secretStatus.className = 'pill ok';
+    els.secretStatus.textContent = 'Ready';
+    els.secretStatus.className = 'status-dot ok';
   } catch (err) {
     cachedSecret = null;
-    els.secretStatus.textContent = 'Secret missing';
-    els.secretStatus.className = 'pill muted';
+    els.secretStatus.textContent = 'Missing';
+    els.secretStatus.className = 'status-dot muted';
     const message = err?.message || String(err);
     els.weatherCopy.textContent = message.includes('rate limit')
-      ? `Secret rate limit hit — wait a minute, then click Refresh weather. (${message})`
-      : `Add ${secretName} in Antinode Manage → Secrets, then refresh. (${message})`;
+      ? 'Rate limited — wait a minute, then refresh.'
+      : `Add ${secretName} in Manage → Secrets, then refresh.`;
     return;
   }
 

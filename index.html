@@ -5,24 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Horizon Atlas</title>
   <meta name="description" content="A minimal Antinode demo: sign-in, secrets, and amAIra on a static site." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="sky-bg" aria-hidden="true">
+    <div class="sky-glow"></div>
+    <div class="topo-lines"></div>
+  </div>
+
   <header class="site-header">
-    <div class="brand">Horizon Atlas</div>
+    <div class="brand-block">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M4 30 L14 18 L22 24 L36 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="30" cy="12" r="3" fill="currentColor" opacity="0.85" />
+      </svg>
+      <div class="brand-copy">
+        <div class="brand">Horizon Atlas</div>
+        <p class="brand-tagline">Weekend trail journal</p>
+      </div>
+    </div>
     <div class="header-actions">
-      <span id="session-chip" class="session-chip">Checking session…</span>
-      <button id="account-btn" class="btn btn-text hidden" type="button">Account</button>
-      <button id="signin-btn" class="btn btn-primary" type="button">Sign in</button>
-      <button id="signout-btn" class="btn btn-text hidden" type="button">Sign out</button>
+      <button
+        id="account-btn"
+        type="button"
+        class="account-btn hidden"
+        aria-label="Account"
+        title="Account"
+      >
+        <svg class="account-btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="3.25" fill="none" stroke="currentColor" stroke-width="1.75" />
+          <path d="M5 20c0-3.5 3.13-6 7-6s7 2.5 7 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+        </svg>
+      </button>
     </div>
   </header>
 
   <main class="layout">
-    <section class="journal">
+    <section class="journal-card">
       <div id="gate" class="gate">
-        <p>Sign in to write trail notes and load weather from your Antinode vault.</p>
-        <button id="gate-signin-btn" class="btn btn-primary" type="button">Sign in</button>
+        <div class="gate-illustration" aria-hidden="true">
+          <svg viewBox="0 0 120 64" class="gate-mountains">
+            <path d="M0 52 L28 28 L48 40 L72 18 L120 44 L120 64 L0 64 Z" fill="currentColor" opacity="0.12" />
+            <path d="M0 56 L36 34 L58 46 L84 24 L120 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.35" />
+          </svg>
+        </div>
+        <h2 class="gate-title">Your trail journal awaits</h2>
+        <p class="gate-lead">Sign in to explore how Antinode powers a static weekend app.</p>
+        <ul class="gate-features">
+          <li>Save ridge notes locally</li>
+          <li>Load weather from your vault secret</li>
+          <li>Chat with embedded amAIra</li>
+        </ul>
+        <button id="gate-signin-btn" class="btn btn-primary btn-lg" type="button">Sign in to begin</button>
       </div>
 
       <div id="workspace" class="workspace hidden">
@@ -37,40 +74,68 @@
           </label>
         </div>
 
-        <div class="weather" id="weather-card">
-          <div class="weather-top">
-            <span class="label">Conditions</span>
-            <span id="secret-status" class="status-dot muted" title="Secret not loaded">Vault</span>
+        <article class="weather-card" id="weather-card" aria-live="polite">
+          <div class="weather-card-head">
+            <span class="label">Trail conditions</span>
+            <span id="secret-status" class="vault-chip muted" title="Vault secret status">Vault</span>
           </div>
-          <p id="weather-copy" class="weather-copy muted">Sign in to load weather via your vault secret.</p>
-        </div>
+          <div class="weather-hero">
+            <span id="weather-icon" class="weather-icon" aria-hidden="true">◎</span>
+            <div class="weather-hero-copy">
+              <p id="weather-condition" class="weather-condition">—</p>
+              <p id="weather-temp" class="weather-temp">—</p>
+            </div>
+          </div>
+          <p id="weather-copy" class="weather-detail muted">Sign in to load weather via your vault secret.</p>
+          <button id="refresh-weather-btn" class="btn btn-ghost btn-sm" type="button">Refresh weather</button>
+        </article>
 
         <label class="field">
-          <span class="label">Note</span>
-          <textarea id="entry-body" rows="4" placeholder="Morning ridge loop…"></textarea>
+          <span class="label">Trail note</span>
+          <textarea id="entry-body" rows="4" placeholder="Morning ridge loop — light fog on the east face…"></textarea>
         </label>
 
         <div class="actions">
-          <button id="save-entry-btn" class="btn btn-primary" type="button">Save</button>
-          <button id="refresh-weather-btn" class="btn btn-text" type="button">Refresh weather</button>
+          <button id="save-entry-btn" class="btn btn-primary" type="button">Save entry</button>
         </div>
 
         <div class="entries">
-          <div class="label">Recent</div>
+          <div class="entries-head">
+            <span class="label">Recent entries</span>
+          </div>
           <ul id="entries-list" class="entries-list"></ul>
         </div>
       </div>
     </section>
-
-    <aside class="ai-panel">
-      <div class="label">amAIra</div>
-      <div id="antinode-ai" class="ai-mount"></div>
-    </aside>
   </main>
 
   <footer class="site-footer muted">
-  Antinode demo — <a href="https://antinode.site" target="_blank" rel="noopener noreferrer">antinode.site</a>
+    Antinode demo — <a href="https://antinode.site" target="_blank" rel="noopener noreferrer">antinode.site</a>
   </footer>
+
+  <button
+    id="ai-fab"
+    class="ai-fab hidden"
+    type="button"
+    aria-label="Open amAIra chat"
+    aria-expanded="false"
+    aria-controls="ai-overlay"
+  >
+    <span class="ai-fab-pulse" aria-hidden="true"></span>
+    <svg class="ai-fab-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3c-4.97 0-9 3.58-9 8 0 2.13 1.07 4.05 2.78 5.44L5 21l4.32-2.16A10.8 10.8 0 0 0 12 19c4.97 0 9-3.58 9-8s-4.03-8-9-8Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+      <circle cx="8.25" cy="11" r="1.1" fill="currentColor" />
+      <circle cx="12" cy="11" r="1.1" fill="currentColor" />
+      <circle cx="15.75" cy="11" r="1.1" fill="currentColor" />
+    </svg>
+  </button>
+
+  <div id="ai-overlay" class="ai-overlay hidden" role="dialog" aria-modal="true" aria-label="amAIra chat">
+    <button type="button" class="ai-overlay-backdrop" id="ai-overlay-backdrop" aria-label="Close chat"></button>
+    <div class="ai-overlay-panel">
+      <div id="antinode-ai" class="ai-mount"></div>
+    </div>
+  </div>
 
   <script src="config.js"></script>
   <script type="module" src="app.js"></script>

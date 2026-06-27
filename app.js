@@ -22,21 +22,25 @@ function assertGatewayConfigured() {
 }
 
 const els = {
-  sessionChip: document.getElementById('session-chip'),
-  signinBtn: document.getElementById('signin-btn'),
-  signoutBtn: document.getElementById('signout-btn'),
+  accountBtn: document.getElementById('account-btn'),
   gate: document.getElementById('gate'),
   gateSigninBtn: document.getElementById('gate-signin-btn'),
   workspace: document.getElementById('workspace'),
-  accountBtn: document.getElementById('account-btn'),
   destination: document.getElementById('destination'),
   entryDate: document.getElementById('entry-date'),
   entryBody: document.getElementById('entry-body'),
   saveEntryBtn: document.getElementById('save-entry-btn'),
   refreshWeatherBtn: document.getElementById('refresh-weather-btn'),
   secretStatus: document.getElementById('secret-status'),
+  weatherCard: document.getElementById('weather-card'),
+  weatherIcon: document.getElementById('weather-icon'),
+  weatherCondition: document.getElementById('weather-condition'),
+  weatherTemp: document.getElementById('weather-temp'),
   weatherCopy: document.getElementById('weather-copy'),
   entriesList: document.getElementById('entries-list'),
+  aiFab: document.getElementById('ai-fab'),
+  aiOverlay: document.getElementById('ai-overlay'),
+  aiOverlayBackdrop: document.getElementById('ai-overlay-backdrop'),
 };
 
 let antinode = null;
@@ -45,34 +49,77 @@ let initError = null;
 let isSignedIn = false;
 let weatherRefreshPromise = null;
 let aiMountPromise = null;
-
-function showStatus(message) {
-  if (els.sessionChip) els.sessionChip.textContent = message;
-}
+let aiOverlayOpen = false;
 
 function showError(message) {
-  showStatus('Needs attention');
-  if (els.weatherCopy) els.weatherCopy.textContent = message;
+  setWeatherUi({
+    icon: '!',
+    condition: 'Unavailable',
+    temp: '—',
+    detail: message,
+    ready: false,
+  });
 }
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function sessionLabel(session) {
-  const user = session?.user || session || {};
-  return user.name || user.email || user.sub || 'Explorer';
-}
-
 function setSessionUi(session) {
   const signedIn = !!(session && session.signed_in);
   isSignedIn = signedIn;
-  els.sessionChip.textContent = signedIn ? `Signed in as ${sessionLabel(session)}` : 'Guest';
-  els.signinBtn.classList.toggle('hidden', signedIn);
-  els.signoutBtn.classList.toggle('hidden', !signedIn);
+  els.accountBtn?.classList.toggle('hidden', !signedIn);
   els.gate.classList.toggle('hidden', signedIn);
   els.workspace.classList.toggle('hidden', !signedIn);
-  els.accountBtn.classList.toggle('hidden', !signedIn);
+}
+
+function weatherEmoji(code) {
+  const map = {
+    0: '☀️',
+    1: '🌤️',
+    2: '⛅',
+    3: '☁️',
+    45: '🌫️',
+    61: '🌦️',
+    63: '🌧️',
+    65: '🌧️',
+    71: '🌨️',
+    95: '⛈️',
+  };
+  return map[code] || '🌡️';
+}
+
+function weatherLabel(code) {
+  const map = {
+    0: 'Clear skies',
+    1: 'Mainly clear',
+    2: 'Partly cloudy',
+    3: 'Overcast',
+    45: 'Foggy',
+    61: 'Light rain',
+    63: 'Rain',
+    65: 'Heavy rain',
+    71: 'Snow',
+    95: 'Thunderstorms',
+  };
+  return map[code] || 'Mixed conditions';
+}
+
+function setWeatherUi({ icon, condition, temp, detail, ready = false }) {
+  if (els.weatherIcon) els.weatherIcon.textContent = icon || '◎';
+  if (els.weatherCondition) els.weatherCondition.textContent = condition || '—';
+  if (els.weatherTemp) els.weatherTemp.textContent = temp || '—';
+  if (els.weatherCopy) els.weatherCopy.textContent = detail || '';
+  if (els.weatherCard) els.weatherCard.classList.toggle('is-ready', !!ready);
+}
+
+function setVaultStatus(text, ok = false) {
+  if (!els.secretStatus) return;
+  els.secretStatus.textContent = text;
+  els.secretStatus.className = `vault-chip${ok ? ' ok' : ' muted'}`;
+  els.secretStatus.title = ok
+    ? `${secretName} loaded from vault`
+    : 'Vault secret status';
 }
 
 function loadEntries() {
@@ -94,8 +141,8 @@ function renderEntries() {
   els.entriesList.innerHTML = '';
   if (!entries.length) {
     const li = document.createElement('li');
-    li.className = 'muted';
-    li.textContent = 'No entries yet.';
+    li.className = 'entry-empty muted';
+    li.textContent = 'No entries yet — save your first ridge note.';
     els.entriesList.appendChild(li);
     return;
   }
@@ -116,6 +163,46 @@ function escapeHtml(value) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function wireAccountBtn() {
+  els.accountBtn?.addEventListener('click', () => {
+    if (!antinode?.account_dashboard) {
+      showError('Sign in first.');
+      return;
+    }
+    antinode.account_dashboard().catch((err) => showError(err?.message || String(err)));
+  });
+}
+
+function showAiFab() {
+  els.aiFab?.classList.remove('hidden');
+}
+
+function openAiOverlay() {
+  if (!els.aiOverlay || aiOverlayOpen) return;
+  aiOverlayOpen = true;
+  els.aiOverlay.classList.remove('hidden');
+  els.aiFab?.setAttribute('aria-expanded', 'true');
+  document.body.style.overflow = 'hidden';
+  scheduleAiMount().catch(() => {});
+}
+
+function closeAiOverlay() {
+  if (!els.aiOverlay || !aiOverlayOpen) return;
+  aiOverlayOpen = false;
+  els.aiOverlay.classList.add('hidden');
+  els.aiFab?.setAttribute('aria-expanded', 'false');
+  document.body.style.overflow = '';
+  els.aiFab?.focus();
+}
+
+function wireAiOverlay() {
+  els.aiFab?.addEventListener('click', () => openAiOverlay());
+  els.aiOverlayBackdrop?.addEventListener('click', () => closeAiOverlay());
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && aiOverlayOpen) closeAiOverlay();
+  });
 }
 
 async function loadAntinode() {
@@ -143,7 +230,7 @@ async function mountAiChat() {
   try {
     await antinode.ai.mount('#antinode-ai');
   } catch (err) {
-    mountEl.innerHTML = `<p class="muted small" style="padding:16px;">AI embed unavailable: ${escapeHtml(err?.message || err)}</p>`;
+    mountEl.innerHTML = `<p class="muted" style="padding:16px;">AI embed unavailable: ${escapeHtml(err?.message || err)}</p>`;
   }
 }
 
@@ -157,39 +244,70 @@ function scheduleAiMount() {
 
 async function refreshWeather({ reloadSecret = false } = {}) {
   if (!antinode || !isSignedIn) {
-    els.secretStatus.textContent = 'Sign in required';
-    els.secretStatus.className = 'status-dot muted';
+    setVaultStatus('Sign in required');
+    setWeatherUi({
+      icon: '◎',
+      condition: 'Waiting',
+      temp: '—',
+      detail: 'Sign in to load weather via your vault secret.',
+      ready: false,
+    });
     return;
   }
 
   if (!reloadSecret && cachedSecret) {
     const place = String(els.destination?.value || 'Mount Tamalpais').trim();
-    els.weatherCopy.textContent = await fetchTrailWeather(place);
+    await applyTrailWeather(place);
     return;
   }
 
-  els.secretStatus.textContent = 'Loading…';
-  els.secretStatus.className = 'status-dot muted';
+  setVaultStatus('Loading…');
 
   try {
     const result = await antinode.getSecret(secretName);
     cachedSecret = typeof result === 'string' ? result.trim() : String(result?.value || '').trim();
     if (!cachedSecret) throw new Error(`Secret ${secretName} is empty`);
-    els.secretStatus.textContent = 'Ready';
-    els.secretStatus.className = 'status-dot ok';
+    setVaultStatus('Vault ready', true);
   } catch (err) {
     cachedSecret = null;
-    els.secretStatus.textContent = 'Missing';
-    els.secretStatus.className = 'status-dot muted';
+    setVaultStatus('Missing');
     const message = err?.message || String(err);
-    els.weatherCopy.textContent = message.includes('rate limit')
-      ? 'Rate limited — wait a minute, then refresh.'
-      : `Add ${secretName} in Manage → Secrets, then refresh.`;
+    setWeatherUi({
+      icon: '!',
+      condition: 'Vault needed',
+      temp: '—',
+      detail: message.includes('rate limit')
+        ? 'Rate limited — wait a minute, then refresh.'
+        : `Add ${secretName} in Manage → Secrets, then refresh.`,
+      ready: false,
+    });
     return;
   }
 
   const place = String(els.destination?.value || 'Mount Tamalpais').trim();
-  els.weatherCopy.textContent = await fetchTrailWeather(place);
+  await applyTrailWeather(place);
+}
+
+async function applyTrailWeather(place) {
+  const snapshot = await fetchTrailWeather(place);
+  if (!snapshot.ok) {
+    setWeatherUi({
+      icon: '!',
+      condition: 'Unavailable',
+      temp: '—',
+      detail: snapshot.message,
+      ready: !!cachedSecret,
+    });
+    return;
+  }
+
+  setWeatherUi({
+    icon: weatherEmoji(snapshot.code),
+    condition: snapshot.label,
+    temp: `${snapshot.temp}°C`,
+    detail: `${snapshot.place}${snapshot.country ? `, ${snapshot.country}` : ''} · Wind ${snapshot.wind} km/h · Vault key ${secretName} active.`,
+    ready: !!cachedSecret,
+  });
 }
 
 function scheduleWeatherRefresh(opts = {}) {
@@ -202,11 +320,12 @@ function scheduleWeatherRefresh(opts = {}) {
 }
 
 async function fetchTrailWeather(place) {
-  // Open-Meteo is free and needs no API key — the secret proves vault wiring.
   const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1`);
   const geo = await geoRes.json();
   const hit = geo?.results?.[0];
-  if (!hit) return `Could not geocode “${place}”. Try another destination name.`;
+  if (!hit) {
+    return { ok: false, message: `Could not geocode “${place}”. Try another destination name.` };
+  }
 
   const { latitude, longitude, name, country } = hit;
   const wxRes = await fetch(
@@ -214,30 +333,17 @@ async function fetchTrailWeather(place) {
   );
   const wx = await wxRes.json();
   const current = wx?.current;
-  if (!current) return `Weather unavailable for ${name}.`;
+  if (!current) return { ok: false, message: `Weather unavailable for ${name}.` };
 
-  const temp = current.temperature_2m;
-  const wind = current.wind_speed_10m;
-  const code = current.weather_code;
-  const label = weatherLabel(code);
-  const keyHint = cachedSecret ? `Vault key ${secretName} is active.` : '';
-  return `${label} in ${name}${country ? `, ${country}` : ''} — ${temp}°C, wind ${wind} km/h. ${keyHint}`.trim();
-}
-
-function weatherLabel(code) {
-  const map = {
-    0: 'Clear skies',
-    1: 'Mainly clear',
-    2: 'Partly cloudy',
-    3: 'Overcast',
-    45: 'Foggy',
-    61: 'Light rain',
-    63: 'Rain',
-    65: 'Heavy rain',
-    71: 'Snow',
-    95: 'Thunderstorms',
+  return {
+    ok: true,
+    place: name,
+    country,
+    temp: current.temperature_2m,
+    wind: current.wind_speed_10m,
+    code: current.weather_code,
+    label: weatherLabel(current.weather_code),
   };
-  return map[code] || 'Mixed conditions';
 }
 
 async function handleSignIn() {
@@ -246,17 +352,6 @@ async function handleSignIn() {
     await loadAntinode();
   }
   await antinode.login({ sessionScope: 'tenant' });
-}
-
-async function handleSignOut() {
-  if (!antinode) return;
-  if (typeof antinode.signout === 'function') {
-    await antinode.signout();
-    return;
-  }
-  if (typeof antinode.logout === 'function') {
-    await antinode.logout();
-  }
 }
 
 function handleSaveEntry() {
@@ -273,32 +368,23 @@ function handleSaveEntry() {
 }
 
 async function bootstrap() {
+  wireAiOverlay();
+  wireAccountBtn();
+
   if (els.entryDate) els.entryDate.value = todayIso();
   renderEntries();
 
-  els.signinBtn?.addEventListener('click', () => {
-    handleSignIn().catch((err) => showError(err?.message || String(err)));
-  });
   els.gateSigninBtn?.addEventListener('click', () => {
     handleSignIn().catch((err) => showError(err?.message || String(err)));
-  });
-  els.signoutBtn?.addEventListener('click', () => {
-    handleSignOut().catch((err) => showError(err?.message || String(err)));
   });
   els.saveEntryBtn?.addEventListener('click', handleSaveEntry);
   els.refreshWeatherBtn?.addEventListener('click', () => {
     scheduleWeatherRefresh({ reloadSecret: true }).catch((err) => showError(err?.message || String(err)));
   });
-  els.accountBtn?.addEventListener('click', () => {
-    if (!antinode?.account_dashboard) {
-      showError('Sign in first.');
-      return;
-    }
-    antinode.account_dashboard().catch((err) => showError(err?.message || String(err)));
-  });
 
   try {
     await loadAntinode();
+    showAiFab();
   } catch (err) {
     initError = err;
     showError(err?.message || String(err));
@@ -322,6 +408,7 @@ async function bootstrap() {
     }
     if (!signedIn) {
       cachedSecret = null;
+      closeAiOverlay();
     }
     wasSignedIn = signedIn;
   });

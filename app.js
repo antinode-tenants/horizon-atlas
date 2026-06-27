@@ -51,6 +51,16 @@ let weatherRefreshPromise = null;
 let aiMountPromise = null;
 let aiOverlayOpen = false;
 
+function trackPageView() {
+  if (typeof window.gtag !== 'function') return;
+  const pagePath = `${window.location.pathname}${window.location.search}`;
+  window.gtag('event', 'page_view', {
+    page_path: pagePath,
+    page_location: `${window.location.origin}${pagePath}`,
+    page_title: document.title,
+  });
+}
+
 function showError(message) {
   setWeatherUi({
     icon: '!',
@@ -368,6 +378,7 @@ function handleSaveEntry() {
 }
 
 async function bootstrap() {
+  trackPageView();
   wireAiOverlay();
   wireAccountBtn();
 

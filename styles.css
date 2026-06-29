@@ -156,7 +156,44 @@ a {
 }
 
 .layout {
-  padding-bottom: 96px;
+  padding-bottom: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.demo-callout {
+  padding: 16px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+  background: color-mix(in srgb, var(--surface) 88%, white);
+  box-shadow: var(--shadow-sm);
+}
+
+.demo-callout-kicker {
+  margin: 0 0 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.demo-callout-copy {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.demo-callout-copy strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.demo-callout-copy a {
+  color: var(--accent);
+  font-weight: 500;
 }
 
 .journal-card {
@@ -477,9 +514,10 @@ textarea {
 }
 
 .site-footer {
-  padding: 20px 0 32px;
+  padding: 12px 0 96px;
   font-size: 0.8125rem;
   text-align: center;
+  line-height: 1.6;
 }
 
 .hidden { display: none !important; }

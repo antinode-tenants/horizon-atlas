@@ -75,12 +75,18 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function setAiFabVisible(visible) {
+  els.aiFab?.classList.toggle('hidden', !visible);
+  if (!visible) closeAiOverlay();
+}
+
 function setSessionUi(session) {
   const signedIn = !!(session && session.signed_in);
   isSignedIn = signedIn;
   els.accountBtn?.classList.toggle('hidden', !signedIn);
   els.gate.classList.toggle('hidden', signedIn);
   els.workspace.classList.toggle('hidden', !signedIn);
+  setAiFabVisible(signedIn);
 }
 
 function weatherEmoji(code) {
@@ -183,10 +189,6 @@ function wireAccountBtn() {
     }
     antinode.account_dashboard().catch((err) => showError(err?.message || String(err)));
   });
-}
-
-function showAiFab() {
-  els.aiFab?.classList.remove('hidden');
 }
 
 function openAiOverlay() {
@@ -395,7 +397,6 @@ async function bootstrap() {
 
   try {
     await loadAntinode();
-    showAiFab();
   } catch (err) {
     initError = err;
     showError(err?.message || String(err));
@@ -429,9 +430,8 @@ async function bootstrap() {
   const signedInOnLoad = !!(session && session.signed_in);
   wasSignedIn = signedInOnLoad;
 
-  await scheduleAiMount();
-
   if (signedInOnLoad) {
+    await scheduleAiMount();
     await scheduleWeatherRefresh().catch(() => {});
   }
 }

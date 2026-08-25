@@ -1,0 +1,16 @@
+{
+  "id": "horizon-describe-session",
+  "name": "Describe trail session",
+  "description": "Return the visitor's current Horizon Atlas session: destination, entry date, journal entry count, vault status, and weather card snapshot. Demo/illustration skill only — responses include a note that data is for learning Agentic Workflows. Use when they ask about their current trip, destination, or what's on screen.",
+  "kind": "api",
+  "tags": ["session", "demo", "auto_refresh"],
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "invoke": {
+    "method": "GET",
+    "path": "/api/horizon-atlas/describe-session"
+  }
+}

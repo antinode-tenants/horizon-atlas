@@ -1,0 +1,16 @@
+{
+  "id": "horizon-list-entries",
+  "name": "List trail entries",
+  "description": "List recent trail journal entries (destination, date, note body) saved in Horizon Atlas. Demo/illustration skill only — responses include a note that data is for learning Agentic Workflows. Use when the visitor asks what they wrote, recent hikes, or journal history.",
+  "kind": "api",
+  "tags": ["journal", "entries", "demo"],
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "invoke": {
+    "method": "GET",
+    "path": "/api/horizon-atlas/entries"
+  }
+}

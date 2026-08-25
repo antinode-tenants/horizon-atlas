@@ -1,4 +1,6 @@
 const STORAGE_KEY = 'horizon-atlas-entries-v1';
+const HORIZON_API_PREFIX = '/api/horizon-atlas';
+const SKILL_DEMO_NOTE = 'Demo only — this skill returns illustrative data from the Horizon Atlas example site. Use it to learn Agentic Workflows; replace with your own API in production.';
 
 const cfg = window.HORIZON_ATLAS_CONFIG || {};
 const params = new URLSearchParams(window.location.search);
@@ -181,6 +183,82 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;');
 }
 
+function withSkillDemoNote(payload) {
+  return { ...payload, note: SKILL_DEMO_NOTE };
+}
+
+function buildSessionSnapshot() {
+  const destination = String(els.destination?.value || '').trim() || 'Mount Tamalpais';
+  const tempText = String(els.weatherTemp?.textContent || '').trim();
+  const tempMatch = tempText.match(/(-?\d+(?:\.\d+)?)/);
+  return {
+    destination,
+    entry_date: String(els.entryDate?.value || todayIso()),
+    entry_count: loadEntries().length,
+    vault_ready: !!cachedSecret,
+    signed_in: isSignedIn,
+    weather: {
+      condition: String(els.weatherCondition?.textContent || '').trim() || null,
+      temp_c: tempMatch ? Number(tempMatch[1]) : null,
+      detail: String(els.weatherCopy?.textContent || '').trim() || null,
+    },
+  };
+}
+
+function horizonApiJson(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+async function handleHorizonAtlasApi(requestUrl, init) {
+  const path = requestUrl.pathname;
+  const method = String(init?.method || 'GET').toUpperCase();
+  if (!isSignedIn) {
+    return horizonApiJson({ error: 'Sign in required' }, 401);
+  }
+  if (method === 'GET' && path === `${HORIZON_API_PREFIX}/describe-session`) {
+    return horizonApiJson(withSkillDemoNote(buildSessionSnapshot()));
+  }
+  if (method === 'GET' && path === `${HORIZON_API_PREFIX}/entries`) {
+    const entries = loadEntries()
+      .slice(0, 10)
+      .map(({ destination, date, body, id }) => ({ destination, date, body, id }));
+    return horizonApiJson(withSkillDemoNote({ entries }));
+  }
+  return horizonApiJson({ error: 'Not found' }, 404);
+}
+
+function installHorizonAtlasApiShim() {
+  if (window.__horizonAtlasApiShimInstalled) return;
+  window.__horizonAtlasApiShimInstalled = true;
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = async function horizonAtlasFetch(input, init) {
+    const url = typeof input === 'string' ? input : input?.url;
+    if (url) {
+      try {
+        const parsed = new URL(url, window.location.origin);
+        if (parsed.origin === window.location.origin && parsed.pathname.startsWith(HORIZON_API_PREFIX)) {
+          return handleHorizonAtlasApi(parsed, init);
+        }
+      } catch (e) {
+        /* fall through to native fetch */
+      }
+    }
+    return nativeFetch(input, init);
+  };
+}
+
+function notifyProductContextChanged() {
+  if (!antinode?.ai?.notifyContextChanged) return;
+  try {
+    antinode.ai.notifyContextChanged('#antinode-ai');
+  } catch (e) {
+    /* optional until amAIra is mounted */
+  }
+}
+
 function wireAccountBtn() {
   els.accountBtn?.addEventListener('click', () => {
     if (!antinode?.account_dashboard) {
@@ -236,9 +314,6 @@ async function mountAiChat() {
   if (!antinode?.ai?.mount) return;
   const mountEl = document.getElementById('antinode-ai');
   if (!mountEl) return;
-  if (typeof antinode.ai.unmount === 'function') {
-    try { antinode.ai.unmount('#antinode-ai'); } catch (e) {}
-  }
   try {
     await antinode.ai.mount('#antinode-ai');
   } catch (err) {
@@ -320,6 +395,7 @@ async function applyTrailWeather(place) {
     detail: `${snapshot.place}${snapshot.country ? `, ${snapshot.country}` : ''} · Wind ${snapshot.wind} km/h · Vault key ${secretName} active.`,
     ready: !!cachedSecret,
   });
+  notifyProductContextChanged();
 }
 
 function scheduleWeatherRefresh(opts = {}) {
@@ -377,9 +453,11 @@ function handleSaveEntry() {
   saveEntries(entries.slice(0, 20));
   if (els.entryBody) els.entryBody.value = '';
   renderEntries();
+  notifyProductContextChanged();
 }
 
 async function bootstrap() {
+  installHorizonAtlasApiShim();
   trackPageView();
   wireAiOverlay();
   wireAccountBtn();
@@ -394,6 +472,7 @@ async function bootstrap() {
   els.refreshWeatherBtn?.addEventListener('click', () => {
     scheduleWeatherRefresh({ reloadSecret: true }).catch((err) => showError(err?.message || String(err)));
   });
+  els.destination?.addEventListener('change', () => notifyProductContextChanged());
 
   try {
     await loadAntinode();

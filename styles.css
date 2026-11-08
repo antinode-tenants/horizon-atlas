@@ -14,6 +14,12 @@
   --accent-glow: rgba(61, 107, 90, 0.28);
   --shadow: 0 12px 40px rgba(30, 41, 59, 0.08);
   --shadow-sm: 0 4px 16px rgba(30, 41, 59, 0.06);
+  --toast-bg: color-mix(in srgb, var(--accent) 10%, var(--surface-elevated));
+  --toast-text: var(--text);
+  --toast-border: color-mix(in srgb, var(--accent) 28%, var(--line));
+  --toast-error-bg: color-mix(in srgb, #dc2626 8%, var(--surface-elevated));
+  --toast-error-text: var(--text);
+  --toast-error-border: color-mix(in srgb, #dc2626 35%, var(--line));
   --radius: 14px;
   --radius-sm: 10px;
   --max: 720px;
@@ -566,15 +572,18 @@ textarea {
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 0.8125rem;
-  line-height: 1.4;
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 12%, #fff);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--toast-text);
+  background: var(--toast-bg);
+  border: 1px solid var(--toast-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .drive-entry-toast.is-error {
-  background: color-mix(in srgb, #dc2626 8%, #fff);
-  border-color: color-mix(in srgb, #dc2626 28%, var(--line));
+  color: var(--toast-error-text);
+  background: var(--toast-error-bg);
+  border-color: var(--toast-error-border);
 }
 
 .entry-item {
@@ -890,6 +899,13 @@ html[data-theme="glass"] {
   --accent-glow: rgba(125, 211, 252, 0.38);
   --shadow: 0 16px 48px rgba(0, 0, 0, 0.38);
   --shadow-sm: 0 6px 20px rgba(0, 0, 0, 0.28);
+  /* Opaque notice surfaces — light text on frosted cards is unreadable. */
+  --toast-bg: color-mix(in srgb, var(--glass-bg-color-mid) 90%, #0f172a);
+  --toast-text: #f8fafc;
+  --toast-border: rgb(255 255 255 / calc(0.22 * var(--glass-ui-opacity, 1)));
+  --toast-error-bg: color-mix(in srgb, #7f1d1d 48%, var(--glass-bg-color-mid));
+  --toast-error-text: #fef2f2;
+  --toast-error-border: color-mix(in srgb, #f87171 42%, var(--glass-bg-color-end));
 }
 
 html[data-theme="glass"] body {
@@ -989,6 +1005,12 @@ html[data-theme="glass"] .entry-drive-btn-export-icon {
 html[data-theme="glass"] .entry-empty {
   background: rgb(255 255 255 / calc(0.04 * var(--glass-ui-opacity)));
   border-color: var(--line);
+}
+
+html[data-theme="glass"] .drive-entry-toast {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 html[data-theme="glass"] .btn-primary {

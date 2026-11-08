@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Horizon Atlas</title>
+  <script>(function(){try{var ok=function(v){return v==='light'||v==='dark'||v==='glass';},keys=["antinode_theme"],t="glass",s='',i=0;for(;i<keys.length;i++){var v=localStorage.getItem(keys[i]);if(ok(v)){s=v;break;}}if(ok(s))t=s;document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t==='light'?'light':'dark';if(t==='glass'){var snap=function(x){return Math.min(100,Math.max(0,Math.round(x/5)*5));},uiMin=0.35,uiSpan=0.65,ambMin=0.08,ambSpan=0.92,p=localStorage.getItem("antinode.glass-strength-percent"),panel=p?parseFloat(p):NaN;if(!isFinite(panel)){var g=localStorage.getItem("antinode.glass-ui-opacity"),n=g?parseFloat(g):NaN;if(isFinite(n))panel=Math.round(((n-uiMin)/uiSpan)*100);else panel=0;}panel=snap(panel);var a=localStorage.getItem("antinode.glass-ambient-percent"),amb=a?parseFloat(a):NaN;if(!isFinite(amb))amb=100;else amb=snap(amb);document.documentElement.style.setProperty('--glass-ui-opacity',String(Math.round((uiMin+(panel/100)*uiSpan)*1000)/1000));document.documentElement.style.setProperty('--glass-ambient-strength',String(Math.round((ambMin+(amb/100)*ambSpan)*1000)/1000));var bgPal=localStorage.getItem("antinode.glass-bg-palette");if(bgPal==='ember')bgPal='pearl';var bgIds=["aurora","midnight","sage"];if(bgIds.indexOf(bgPal)>=0)document.documentElement.setAttribute('data-glass-bg',bgPal);}}catch(e){}})();</script>
   <meta name="description" content="A static GitHub Pages demo using Antinode BaaS for sign-in, secrets vault, account billing, and amAIra." />
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-T66JYZRW1R"></script>
@@ -16,6 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="glass-bg-palettes.generated.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -36,6 +38,49 @@
       </div>
     </div>
     <div class="header-actions">
+      <div id="drive-header" class="drive-header hidden" aria-live="polite">
+        <div class="drive-header-slot">
+          <button
+            id="drive-header-connect"
+            type="button"
+            class="drive-header-btn hidden"
+            aria-label="Connect Google Drive"
+            title="Google Drive not connected. Click to link your account and back up journal entries."
+          >
+            <img
+              src="assets/google_drive_logo.svg"
+              alt=""
+              width="22"
+              height="22"
+              class="drive-header-logo"
+              decoding="async"
+            />
+          </button>
+          <a
+            id="drive-header-open"
+            class="drive-header-btn drive-header-btn--linked hidden"
+            href="https://drive.google.com/drive/my-drive"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open Google Drive"
+            title="Google Drive connected. Click to open Google Drive."
+          >
+            <img
+              src="assets/google_drive_logo.svg"
+              alt=""
+              width="22"
+              height="22"
+              class="drive-header-logo"
+              decoding="async"
+            />
+          </a>
+          <span
+            id="drive-header-status-dot"
+            class="drive-header-status-dot is-off"
+            aria-hidden="true"
+          ></span>
+        </div>
+      </div>
       <button
         id="account-btn"
         type="button"
@@ -65,6 +110,7 @@
         <ul class="gate-features">
           <li>Save ridge notes locally</li>
           <li>Load weather from your vault secret</li>
+          <li>Back up your journal to Google Drive</li>
           <li>Chat with embedded amAIra</li>
         </ul>
         <button id="gate-signin-btn" class="btn btn-primary btn-lg" type="button">Sign in to begin</button>
@@ -111,6 +157,7 @@
           <div class="entries-head">
             <span class="label">Recent entries</span>
           </div>
+          <p id="drive-entry-toast" class="drive-entry-toast hidden" role="status" aria-live="polite"></p>
           <ul id="entries-list" class="entries-list"></ul>
         </div>
       </div>
@@ -120,7 +167,7 @@
       <p class="demo-callout-kicker">How this site is built</p>
       <p class="demo-callout-copy">
         Horizon Atlas is a <strong>static site hosted on GitHub Pages</strong> — plain HTML, CSS, and JavaScript with no server of its own.
-        <a href="https://antinode.site" target="_blank" rel="noopener noreferrer">Antinode</a> provides the BaaS layer: Google sign-in, encrypted secrets vault, hosted account &amp; billing, and the <strong>amAIra</strong> chat embed you can open after signing in.
+        <a href="https://antinode.site" target="_blank" rel="noopener noreferrer">Antinode</a> provides the BaaS layer: Google sign-in, encrypted secrets vault, <strong>Google Drive</strong> upload for visitors, hosted account &amp; billing, and the <strong>amAIra</strong> chat embed you can open after signing in.
       </p>
     </aside>
   </main>

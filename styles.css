@@ -129,6 +129,84 @@ a {
   min-height: 38px;
 }
 
+.drive-header {
+  display: flex;
+  align-items: center;
+}
+
+.drive-header-slot {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+.drive-header-btn {
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.drive-header-btn:hover:not(:disabled) {
+  background: #fff;
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--line));
+}
+
+.drive-header-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.drive-header-btn--linked {
+  border-color: color-mix(in srgb, #2684fc 22%, var(--line));
+}
+
+.drive-header-btn--linked:hover {
+  box-shadow: 0 4px 14px rgba(38, 132, 252, 0.14);
+}
+
+.drive-header-logo {
+  display: block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.drive-header-status-dot {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+  pointer-events: none;
+  z-index: 2;
+  transition: background-color 0.2s ease;
+}
+
+.drive-header-status-dot.is-off {
+  background: #dc2626;
+}
+
+.drive-header-status-dot.is-on {
+  background: #16a34a;
+}
+
 .account-btn {
   appearance: none;
   width: 38px;
@@ -483,13 +561,106 @@ textarea {
   gap: 10px;
 }
 
+.drive-entry-toast {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, #fff);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+}
+
+.drive-entry-toast.is-error {
+  background: color-mix(in srgb, #dc2626 8%, #fff);
+  border-color: color-mix(in srgb, #dc2626 28%, var(--line));
+}
+
 .entry-item {
-  padding: 14px 16px;
+  position: relative;
+  padding: 14px 92px 40px 16px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--surface-elevated);
   border-left: 3px solid var(--accent);
   box-shadow: var(--shadow-sm);
+}
+
+.entry-item-body {
+  white-space: pre-wrap;
+}
+
+.entry-drive-actions {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.entry-drive-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.88);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease, opacity 0.15s ease;
+}
+
+.entry-drive-btn:hover:not(:disabled) {
+  background: #fff;
+  border-color: color-mix(in srgb, #2684fc 35%, var(--line));
+  transform: translateY(-1px);
+}
+
+.entry-drive-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.entry-drive-btn.is-busy {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.entry-drive-btn-mark {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.entry-drive-btn-logo {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.entry-drive-btn-export-icon {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  width: 12px;
+  height: 12px;
+  padding: 1px;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--line-soft);
+}
+
+.entry-drive-open-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
 }
 
 .entry-item strong {
@@ -698,4 +869,168 @@ textarea {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
   }
+}
+
+/* Liquid glass — matches Antinode owner dashboard + amAIra embed defaults */
+html[data-theme="glass"] {
+  color-scheme: dark;
+  --glass-ui-opacity: 0.35;
+  --glass-ambient-strength: 1;
+  --bg-top: transparent;
+  --bg-bottom: transparent;
+  --surface: rgb(255 255 255 / calc(0.1 * var(--glass-ui-opacity)));
+  --surface-elevated: rgb(255 255 255 / calc(0.12 * var(--glass-ui-opacity)));
+  --text: #f8fafc;
+  --muted: #cbd5e1;
+  --line: rgb(255 255 255 / calc(0.18 * var(--glass-ui-opacity)));
+  --line-soft: rgb(255 255 255 / calc(0.12 * var(--glass-ui-opacity)));
+  --accent: #7dd3fc;
+  --accent-hover: #bae6fd;
+  --accent-soft: rgba(125, 211, 252, 0.22);
+  --accent-glow: rgba(125, 211, 252, 0.38);
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.38);
+  --shadow-sm: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="glass"] body {
+  background: transparent;
+}
+
+html[data-theme="glass"] .sky-glow {
+  background: radial-gradient(circle, rgba(125, 211, 252, 0.18) 0%, transparent 70%);
+}
+
+html[data-theme="glass"] .topo-lines {
+  opacity: 0.22;
+}
+
+html[data-theme="glass"] .brand-mark {
+  color: var(--accent);
+}
+
+html[data-theme="glass"] .journal-card,
+html[data-theme="glass"] .demo-callout {
+  background: var(--surface);
+  border: 1px solid rgb(255 255 255 / calc(0.16 * var(--glass-ui-opacity)));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+}
+
+html[data-theme="glass"] .account-btn,
+html[data-theme="glass"] .drive-header-btn {
+  background: rgb(255 255 255 / calc(0.08 * var(--glass-ui-opacity)));
+  border-color: var(--line);
+  color: var(--text);
+}
+
+html[data-theme="glass"] .account-btn:hover,
+html[data-theme="glass"] .drive-header-btn:hover:not(:disabled) {
+  background: rgb(255 255 255 / calc(0.14 * var(--glass-ui-opacity)));
+  border-color: rgb(255 255 255 / calc(0.24 * var(--glass-ui-opacity)));
+}
+
+html[data-theme="glass"] input,
+html[data-theme="glass"] textarea {
+  background: rgb(255 255 255 / calc(0.08 * var(--glass-ui-opacity)));
+  border-color: var(--line);
+  color: var(--text);
+}
+
+html[data-theme="glass"] input:focus,
+html[data-theme="glass"] textarea:focus {
+  border-color: rgb(125 211 252 / calc(0.55 * var(--glass-ui-opacity)));
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+html[data-theme="glass"] .weather-card {
+  background: rgb(255 255 255 / calc(0.06 * var(--glass-ui-opacity)));
+  border-color: var(--line-soft);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+}
+
+html[data-theme="glass"] .weather-card.is-ready {
+  border-color: rgb(125 211 252 / calc(0.42 * var(--glass-ui-opacity)));
+  box-shadow: 0 8px 28px var(--accent-soft);
+}
+
+html[data-theme="glass"] .vault-chip {
+  background: rgb(255 255 255 / calc(0.06 * var(--glass-ui-opacity)));
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+html[data-theme="glass"] .vault-chip.ok {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+html[data-theme="glass"] .entry-item {
+  background: var(--surface-elevated);
+  border-color: var(--line-soft);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+html[data-theme="glass"] .entry-drive-btn {
+  background: rgb(255 255 255 / calc(0.1 * var(--glass-ui-opacity)));
+  border-color: var(--line);
+}
+
+html[data-theme="glass"] .entry-drive-btn:hover:not(:disabled) {
+  background: rgb(255 255 255 / calc(0.16 * var(--glass-ui-opacity)));
+}
+
+html[data-theme="glass"] .entry-drive-btn-export-icon {
+  background: rgb(255 255 255 / calc(0.92 * var(--glass-ui-opacity)));
+}
+
+html[data-theme="glass"] .entry-empty {
+  background: rgb(255 255 255 / calc(0.04 * var(--glass-ui-opacity)));
+  border-color: var(--line);
+}
+
+html[data-theme="glass"] .btn-primary {
+  background: linear-gradient(145deg, #38bdf8 0%, #0ea5e9 100%);
+  color: #0f172a;
+  box-shadow: 0 8px 22px var(--accent-glow);
+}
+
+html[data-theme="glass"] .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(145deg, #7dd3fc 0%, #38bdf8 100%);
+}
+
+html[data-theme="glass"] .btn-ghost:hover:not(:disabled) {
+  background: rgb(255 255 255 / calc(0.08 * var(--glass-ui-opacity)));
+  color: var(--text);
+}
+
+html[data-theme="glass"] .ai-fab {
+  background: linear-gradient(145deg, #38bdf8 0%, #6366f1 55%, #7c3aed 100%);
+  box-shadow:
+    0 10px 28px rgba(56, 189, 248, 0.38),
+    0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="glass"] .ai-fab-pulse {
+  background: rgba(125, 211, 252, 0.45);
+}
+
+html[data-theme="glass"] .ai-overlay-backdrop {
+  background: rgba(3, 7, 18, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+html[data-theme="glass"] .ai-overlay-panel {
+  background: rgb(15 23 42 / calc(0.55 * var(--glass-ui-opacity)));
+  border: 1px solid rgb(255 255 255 / calc(0.14 * var(--glass-ui-opacity)));
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(20px) saturate(1.35);
+  -webkit-backdrop-filter: blur(20px) saturate(1.35);
+}
+
+html[data-theme="glass"] .ai-mount {
+  background: transparent;
 }

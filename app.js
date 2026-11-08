@@ -5,6 +5,7 @@ const SKILL_DEMO_NOTE = 'Demo only — this skill returns illustrative data from
 const cfg = window.HORIZON_ATLAS_CONFIG || {};
 const params = new URLSearchParams(window.location.search);
 const gatewayUrl = String(params.get('gateway') || cfg.gatewayUrl || '').replace(/\/$/, '');
+const dashboardBasePath = String(cfg.dashboardBasePath || '/dashboard').replace(/\/$/, '');
 const secretName = String(cfg.secretName || 'HORIZON_WEATHER_KEY');
 
 function assertGatewayConfigured() {
@@ -43,10 +44,20 @@ const els = {
   aiFab: document.getElementById('ai-fab'),
   aiOverlay: document.getElementById('ai-overlay'),
   aiOverlayBackdrop: document.getElementById('ai-overlay-backdrop'),
+  driveHeader: document.getElementById('drive-header'),
+  driveHeaderConnect: document.getElementById('drive-header-connect'),
+  driveHeaderOpen: document.getElementById('drive-header-open'),
+  driveHeaderStatusDot: document.getElementById('drive-header-status-dot'),
+  driveEntryToast: document.getElementById('drive-entry-toast'),
 };
 
 let antinode = null;
 let cachedSecret = null;
+let googleDriveConnected = false;
+let googleDriveStatus = 'idle';
+let driveExportBusy = false;
+let driveToastHideTimer = null;
+let googleDriveRefreshPromise = null;
 let initError = null;
 let isSignedIn = false;
 let weatherRefreshPromise = null;
@@ -86,6 +97,7 @@ function setSessionUi(session) {
   const signedIn = !!(session && session.signed_in);
   isSignedIn = signedIn;
   els.accountBtn?.classList.toggle('hidden', !signedIn);
+  els.driveHeader?.classList.toggle('hidden', !signedIn);
   els.gate.classList.toggle('hidden', signedIn);
   els.workspace.classList.toggle('hidden', !signedIn);
   setAiFabVisible(signedIn);
@@ -154,6 +166,100 @@ function saveEntries(entries) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
+const ENTRY_DRIVE_EXPORT_ICON = `
+  <svg class="entry-drive-btn-export-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 15V4m0 0 4 4m-4-4-4 4" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" />
+  </svg>`;
+
+const ENTRY_DRIVE_OPEN_ICON = `
+  <svg class="entry-drive-open-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M14 5h6m0 0v6m0-6L10 15" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M20 13v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h4" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" />
+  </svg>`;
+
+function showDriveEntryToast(message, { isError = false } = {}) {
+  if (!els.driveEntryToast || !message) return;
+  if (driveToastHideTimer) {
+    clearTimeout(driveToastHideTimer);
+    driveToastHideTimer = null;
+  }
+  els.driveEntryToast.textContent = message;
+  els.driveEntryToast.classList.toggle('is-error', !!isError);
+  els.driveEntryToast.classList.remove('hidden');
+  driveToastHideTimer = setTimeout(() => {
+    els.driveEntryToast?.classList.add('hidden');
+  }, isError ? 8000 : 5000);
+}
+
+function entryDriveActionsHtml(entry) {
+  const entryId = escapeHtml(entry.id || '');
+  const fileId = String(entry.drive_file_id || '').trim();
+  const openUrl = fileId ? driveWebViewUrl(fileId) : '';
+  const openControl = openUrl
+    ? `<a
+        class="entry-drive-btn entry-drive-open-btn"
+        href="${escapeHtml(openUrl)}"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-entry-id="${entryId}"
+        aria-label="Open this entry in Google Drive"
+        title="Open in Google Drive"
+      >${ENTRY_DRIVE_OPEN_ICON}</a>`
+    : `<button
+        type="button"
+        class="entry-drive-btn entry-drive-open-btn"
+        data-entry-id="${entryId}"
+        disabled
+        aria-label="Open in Google Drive (export first)"
+        title="Export to Drive first to enable Open"
+      >${ENTRY_DRIVE_OPEN_ICON}</button>`;
+  return `
+    <div class="entry-drive-actions">
+      ${openControl}
+      <button
+        type="button"
+        class="entry-drive-btn entry-drive-export-btn"
+        data-entry-id="${entryId}"
+        aria-label="Export this entry to Google Drive"
+        title="Export this entry to Google Drive"
+      >
+        <span class="entry-drive-btn-mark">
+          <img
+            src="assets/google_drive_logo.svg"
+            alt=""
+            width="18"
+            height="18"
+            class="entry-drive-btn-logo"
+            decoding="async"
+          />
+          ${ENTRY_DRIVE_EXPORT_ICON}
+        </span>
+      </button>
+    </div>`;
+}
+
+function persistEntryDriveFileId(entryId, fileId) {
+  const entries = loadEntries().map((entry) => (
+    String(entry.id) === String(entryId)
+      ? { ...entry, drive_file_id: fileId }
+      : entry
+  ));
+  saveEntries(entries);
+}
+
+function updateEntryDriveButtons() {
+  if (!els.entriesList) return;
+  const connected = googleDriveConnected && googleDriveStatus !== 'disabled';
+  els.entriesList.querySelectorAll('.entry-drive-export-btn').forEach((btn) => {
+    const busy = btn.classList.contains('is-busy');
+    btn.disabled = !connected || busy || driveExportBusy;
+    btn.title = connected
+      ? 'Export this entry to Google Drive'
+      : 'Connect Google Drive in the header to export entries';
+  });
+}
+
 function renderEntries() {
   const entries = loadEntries().sort((a, b) => String(b.date).localeCompare(String(a.date)));
   els.entriesList.innerHTML = '';
@@ -170,10 +276,12 @@ function renderEntries() {
     li.innerHTML = `
       <strong>${escapeHtml(entry.destination)}</strong>
       <div class="entry-meta">${escapeHtml(entry.date)}</div>
-      <div>${escapeHtml(entry.body)}</div>
+      <div class="entry-item-body">${escapeHtml(entry.body)}</div>
+      ${entryDriveActionsHtml(entry)}
     `;
     els.entriesList.appendChild(li);
   }
+  updateEntryDriveButtons();
 }
 
 function escapeHtml(value) {
@@ -197,12 +305,276 @@ function buildSessionSnapshot() {
     entry_count: loadEntries().length,
     vault_ready: !!cachedSecret,
     signed_in: isSignedIn,
+    google_drive: {
+      connected: googleDriveConnected,
+      status: googleDriveStatus,
+      entries_on_drive: loadEntries().filter((e) => e.drive_file_id).length,
+    },
     weather: {
       condition: String(els.weatherCondition?.textContent || '').trim() || null,
       temp_c: tempMatch ? Number(tempMatch[1]) : null,
       detail: String(els.weatherCopy?.textContent || '').trim() || null,
     },
   };
+}
+
+function googleTenantPath(tenantId, suffix) {
+  return `${dashboardBasePath}/tenants/${encodeURIComponent(tenantId)}/integrations/google${suffix}`;
+}
+
+async function parseGatewayError(res) {
+  const text = await res.text().catch(() => '');
+  try {
+    const json = JSON.parse(text);
+    return json.message || json.error || text || res.statusText;
+  } catch (e) {
+    return text || res.statusText;
+  }
+}
+
+async function fetchWithTenantCreds(path, init = {}) {
+  return fetch(`${gatewayUrl}${path}`, { credentials: 'include', ...init });
+}
+
+async function requireTenantId() {
+  if (!antinode) throw new Error('Antinode SDK not loaded');
+  const session = await antinode.session();
+  if (!session?.signed_in) throw new Error('Sign in required');
+  const tenantId = String(session?.tenant?.tenant_id || '').trim();
+  if (!tenantId) throw new Error('Tenant id missing from session');
+  return tenantId;
+}
+
+function driveWebViewUrl(fileId) {
+  const id = String(fileId || '').trim();
+  if (!id) return '';
+  return `https://drive.google.com/file/d/${encodeURIComponent(id)}/view`;
+}
+
+function sanitizeEntryFilenamePart(value) {
+  return String(value || 'trip')
+    .trim()
+    .replace(/[^\w\-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 36) || 'trip';
+}
+
+function buildEntryExportFile(entry) {
+  const destination = String(entry?.destination || 'Trail note').trim();
+  const date = String(entry?.date || todayIso()).trim();
+  const lines = [
+    'Horizon Atlas — trail note',
+    `Destination: ${destination}`,
+    `Date: ${date}`,
+    '',
+    String(entry?.body || '').trim(),
+  ];
+  const name = `horizon-atlas-${sanitizeEntryFilenamePart(destination)}-${date}.txt`;
+  return new File([lines.join('\n')], name, { type: 'text/plain' });
+}
+
+async function uploadFileToDrive(file) {
+  const tenantId = await requireTenantId();
+  const body = new FormData();
+  body.append('file', file);
+  body.append('name', file.name);
+  const res = await fetchWithTenantCreds(googleTenantPath(tenantId, '/drive/upload'), {
+    method: 'POST',
+    body,
+  });
+  if (!res.ok) throw new Error(await parseGatewayError(res));
+  const payload = await res.json();
+  const fileId = String(payload?.file?.drive_file_id || '').trim();
+  if (!fileId) throw new Error('Upload succeeded but file id was missing');
+  return { payload, fileId };
+}
+
+const DRIVE_HEADER_TOOLTIPS = {
+  off: 'Google Drive not connected. Click to link your account and back up journal entries.',
+  on: 'Google Drive connected. Click to open Google Drive.',
+  loading: 'Checking Google Drive connection…',
+  error: 'Could not verify Google Drive. Click to try connecting again.',
+};
+
+function setDriveHeaderTooltip(target, message) {
+  if (!target || !message) return;
+  target.title = message;
+  target.setAttribute('aria-label', message);
+}
+
+function setDriveHeaderUi() {
+  if (!els.driveHeader || !isSignedIn) return;
+
+  const showHeaderChrome = googleDriveStatus !== 'disabled';
+  els.driveHeader.classList.toggle('hidden', !showHeaderChrome);
+
+  if (!showHeaderChrome) {
+    els.driveHeaderConnect?.classList.add('hidden');
+    els.driveHeaderOpen?.classList.add('hidden');
+    return;
+  }
+
+  const showLinked = googleDriveConnected && googleDriveStatus !== 'loading';
+  els.driveHeaderConnect?.classList.toggle('hidden', showLinked);
+  els.driveHeaderOpen?.classList.toggle('hidden', !showLinked);
+
+  const dot = els.driveHeaderStatusDot;
+  if (dot) {
+    dot.classList.toggle('is-on', showLinked);
+    dot.classList.toggle('is-off', !showLinked);
+  }
+
+  if (googleDriveStatus === 'loading') {
+    els.driveHeaderConnect && (els.driveHeaderConnect.disabled = true);
+    setDriveHeaderTooltip(els.driveHeaderConnect, DRIVE_HEADER_TOOLTIPS.loading);
+    return;
+  }
+
+  els.driveHeaderConnect && (els.driveHeaderConnect.disabled = false);
+
+  if (showLinked) {
+    setDriveHeaderTooltip(els.driveHeaderOpen, DRIVE_HEADER_TOOLTIPS.on);
+    return;
+  }
+
+  const tip = googleDriveStatus === 'error'
+    ? DRIVE_HEADER_TOOLTIPS.error
+    : DRIVE_HEADER_TOOLTIPS.off;
+  setDriveHeaderTooltip(els.driveHeaderConnect, tip);
+}
+
+function setDriveUi() {
+  setDriveHeaderUi();
+  updateEntryDriveButtons();
+}
+
+function stripGoogleConnectedQuery() {
+  const u = new URL(window.location.href);
+  if (u.searchParams.get('google_connected') !== '1') return false;
+  u.searchParams.delete('google_connected');
+  const next = `${u.pathname}${u.search}${u.hash}`;
+  window.history.replaceState({}, '', next);
+  return true;
+}
+
+function scheduleGoogleDriveRefresh(options = {}) {
+  if (!isSignedIn) return Promise.resolve();
+  if (googleDriveRefreshPromise) return googleDriveRefreshPromise;
+  googleDriveRefreshPromise = refreshGoogleDriveStatus(options).finally(() => {
+    googleDriveRefreshPromise = null;
+  });
+  return googleDriveRefreshPromise;
+}
+
+async function refreshGoogleDriveStatus({ forceLoading = false } = {}) {
+  if (!isSignedIn) {
+    googleDriveConnected = false;
+    googleDriveStatus = 'idle';
+    setDriveUi();
+    return;
+  }
+
+  const showLoading = forceLoading || googleDriveStatus === 'idle';
+  if (showLoading) {
+    googleDriveStatus = 'loading';
+    setDriveUi();
+  }
+
+  try {
+    const tenantId = await requireTenantId();
+    const res = await fetchWithTenantCreds(googleTenantPath(tenantId, '/connection'));
+    if (res.status === 403) {
+      const err = await res.json().catch(() => ({}));
+      if (err.error === 'google_integration_disabled') {
+        googleDriveConnected = false;
+        googleDriveStatus = 'disabled';
+        setDriveUi();
+        showDriveEntryToast(
+          'Google services are off for this site. Enable them in Antinode Manage → Google.',
+          { isError: true },
+        );
+        notifyProductContextChanged();
+        return;
+      }
+    }
+    if (!res.ok) {
+      googleDriveConnected = false;
+      googleDriveStatus = 'error';
+      setDriveUi();
+      return;
+    }
+    const body = await res.json();
+    googleDriveConnected = !!body.connected;
+    googleDriveStatus = googleDriveConnected ? 'ready' : 'idle';
+    setDriveUi();
+    notifyProductContextChanged();
+  } catch (err) {
+    googleDriveConnected = false;
+    googleDriveStatus = 'error';
+    setDriveUi();
+  }
+}
+
+async function startGoogleDriveConnect() {
+  try {
+    const tenantId = await requireTenantId();
+    const returnTo = window.location.href.split('#')[0];
+    const qs = new URLSearchParams({ return_to: returnTo });
+    const res = await fetchWithTenantCreds(
+      `${googleTenantPath(tenantId, '/oauth/authorize')}?${qs}`,
+    );
+    if (!res.ok) throw new Error(await parseGatewayError(res));
+    const { url } = await res.json();
+    if (!url) throw new Error('Authorize URL missing from gateway');
+    window.location.href = url;
+  } catch (err) {
+    showDriveEntryToast(err?.message || String(err), { isError: true });
+  }
+}
+
+async function exportEntryToDrive(entry, triggerBtn) {
+  if (!googleDriveConnected) {
+    showDriveEntryToast('Connect Google Drive from the header before exporting.', { isError: true });
+    return;
+  }
+  if (driveExportBusy) return;
+  driveExportBusy = true;
+  triggerBtn?.classList.add('is-busy');
+  setDriveUi();
+  try {
+    const file = buildEntryExportFile(entry);
+    const { payload, fileId } = await uploadFileToDrive(file);
+    persistEntryDriveFileId(entry.id, fileId);
+    renderEntries();
+    showDriveEntryToast(`Uploaded “${payload.file?.name || file.name}” for ${entry.destination}.`);
+    notifyProductContextChanged();
+  } catch (err) {
+    showDriveEntryToast(err?.message || String(err), { isError: true });
+  } finally {
+    triggerBtn?.classList.remove('is-busy');
+    driveExportBusy = false;
+    setDriveUi();
+  }
+}
+
+function wireEntryDriveExports() {
+  els.entriesList?.addEventListener('click', (event) => {
+    const btn = event.target.closest?.('.entry-drive-export-btn');
+    if (!btn || btn.disabled) return;
+    const entryId = String(btn.getAttribute('data-entry-id') || '').trim();
+    if (!entryId) return;
+    const entry = loadEntries().find((item) => String(item.id) === entryId);
+    if (!entry) return;
+    exportEntryToDrive(entry, btn).catch(() => {});
+  });
+}
+
+function wireDriveHeader() {
+  els.driveHeaderConnect?.addEventListener('click', () => {
+    startGoogleDriveConnect().catch((err) => {
+      showDriveEntryToast(err?.message || String(err), { isError: true });
+    });
+  });
 }
 
 function horizonApiJson(data, status = 200) {
@@ -315,7 +687,9 @@ async function mountAiChat() {
   const mountEl = document.getElementById('antinode-ai');
   if (!mountEl) return;
   try {
-    await antinode.ai.mount('#antinode-ai');
+    await antinode.ai.mount('#antinode-ai', {
+      theme: document.documentElement.getAttribute('data-theme') || 'glass',
+    });
   } catch (err) {
     mountEl.innerHTML = `<p class="muted" style="padding:16px;">AI embed unavailable: ${escapeHtml(err?.message || err)}</p>`;
   }
@@ -495,11 +869,15 @@ async function bootstrap() {
     if (signedIn && !wasSignedIn) {
       scheduleWeatherRefresh().catch(() => {});
       scheduleAiMount().catch(() => {});
+      scheduleGoogleDriveRefresh({ forceLoading: true }).catch(() => {});
       renderEntries();
     }
     if (!signedIn) {
       cachedSecret = null;
+      googleDriveConnected = false;
+      googleDriveStatus = 'idle';
       closeAiOverlay();
+      setDriveUi();
     }
     wasSignedIn = signedIn;
   });
@@ -513,6 +891,17 @@ async function bootstrap() {
     await scheduleAiMount();
     await scheduleWeatherRefresh().catch(() => {});
   }
+
+  if (stripGoogleConnectedQuery()) {
+    await scheduleGoogleDriveRefresh({ forceLoading: true }).catch(() => {});
+  } else if (signedInOnLoad) {
+    await scheduleGoogleDriveRefresh({ forceLoading: true }).catch(() => {});
+  } else {
+    setDriveUi();
+  }
+
+  wireDriveHeader();
+  wireEntryDriveExports();
 }
 
 bootstrap().catch((err) => {

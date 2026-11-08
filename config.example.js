@@ -2,5 +2,7 @@
 // Register this site's origin in your Antinode tenant before testing.
 window.HORIZON_ATLAS_CONFIG = {
   gatewayUrl: 'https://YOUR-GATEWAY-URL',
+  /** Antinode dashboard API prefix on the gateway (default /dashboard). */
+  dashboardBasePath: '/dashboard',
   secretName: 'HORIZON_WEATHER_KEY',
 };
